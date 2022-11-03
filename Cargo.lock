@@ -3128,6 +3128,7 @@ name = "travelling-collector"
 version = "0.1.0"
 dependencies = [
  "ethers",
+ "futures",
  "tokio",
 ]
 
