@@ -8,9 +8,8 @@ use std::env;
 #[tokio::main]
 async fn main() {
     let args: Vec<String> = env::args().collect();
-    let mut input_block: u64 = args[1].parse().unwrap(); // 15900000
-    let backwards: bool = match &args[2][..] {
-        "true" => true,
+    let mode: bool = match &args[1][..] {
+        "backwards" => true,
         _ => false,
     }; // true
 
@@ -20,7 +19,8 @@ async fn main() {
 
     let latest_block_number = ws_provider.get_block_number().await.unwrap();
 
-    if backwards {
+    if mode {
+        let mut input_block: u64 = args[2].parse().unwrap(); // 15900000
         loop {
             let block = ws_provider.get_block(input_block).await.unwrap().unwrap();
             println!("Perform logic on {} block", input_block);
