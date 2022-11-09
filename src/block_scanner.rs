@@ -37,23 +37,24 @@ pub async fn analyze_block(ws_provider: &Provider<Ws>, block: Block<H256>, lates
     );
 
     // get the contract address
-    let mut contract_address =
-        contract::get_contracts(ws_provider, contract_creation_transactions).await;
+    let mut contracts = contract::get_contracts(ws_provider, contract_creation_transactions).await;
 
-    println!("Smart contracts: {:?}", &contract_address);
-    contract::get_balances(&ws_provider, &mut contract_address, latest_block).await;
+    println!("Smart contracts: {:?}", &contracts);
+    contract::get_balances(&ws_provider, &mut contracts, latest_block).await;
 
-    println!("Balances: {:?}", &contract_address);
+    println!("Balances: {:?}", &contracts);
 
     helper::filter_contracts_on_balance(
-        &mut contract_address,
+        &mut contracts,
         ethers::utils::parse_ether(helper::BALANCE_THRESHOLD).unwrap(),
     );
+    println!("filtered: {:?}", &contracts);
+    contract::get_verified_code(&mut contracts).await;
 
     println!(
         "Balances with balance >= {}eth eth: {:?}",
         helper::BALANCE_THRESHOLD,
-        &contract_address
+        &contracts
     );
 }
 

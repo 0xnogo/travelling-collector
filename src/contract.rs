@@ -6,36 +6,55 @@ use ethers::{
 };
 use futures::future;
 
+use crate::source_code;
+
 #[derive(Debug)]
 pub struct Contract {
     pub address: H160,
     pub balance: U256,
     pub block_hash: H256,
     pub bytecode: Option<String>,
+    pub verified_code: Option<Vec<(String, Vec<String>)>>,
 }
 
 #[allow(dead_code)]
 impl Contract {
-    pub fn new(address: H160, balance: U256, block_hash: H256, bytecode: String) -> Self {
+    pub fn new(
+        address: H160,
+        balance: U256,
+        block_hash: H256,
+        bytecode: String,
+        verified_code: Vec<(String, Vec<String>)>,
+    ) -> Self {
         Self {
             address,
             balance,
             block_hash,
             bytecode: Some(bytecode),
+            verified_code: Some(verified_code),
         }
     }
 
-    pub fn new_without_bytecode(address: H160, balance: U256, block_hash: H256) -> Self {
+    pub fn new_without_code(address: H160, balance: U256, block_hash: H256) -> Self {
         Self {
             address,
             balance,
             block_hash,
             bytecode: None,
+            verified_code: None,
         }
     }
 
     pub fn set_balance(&mut self, balance: U256) {
         self.balance = balance;
+    }
+
+    pub fn set_verified_code(&mut self, code: Vec<(String, Vec<String>)>) {
+        if code.len() == 0 {
+            self.verified_code = None;
+        }
+
+        self.verified_code = Some(code);
     }
 }
 
@@ -80,11 +99,27 @@ pub async fn get_contracts(
         .into_iter()
         .filter(|tx_receipt| tx_receipt.is_some())
         .map(|tx_receipt| {
-            Contract::new_without_bytecode(
+            Contract::new_without_code(
                 tx_receipt.as_ref().unwrap().contract_address.unwrap(),
                 U256::from(0),
                 tx_receipt.as_ref().unwrap().block_hash.unwrap(),
             )
         })
         .collect()
+}
+
+pub async fn get_verified_code(contracts: &mut Vec<Contract>) {
+    let smart_contracts = future::join_all(
+        contracts
+            .iter()
+            .map(|c| source_code::get_source_code(&c.address)),
+    )
+    .await;
+
+    let mut iterator = smart_contracts.iter();
+
+    contracts.iter_mut().for_each(|c| match iterator.next() {
+        Some(sc) => c.set_verified_code(sc.to_owned()),
+        _ => (),
+    });
 }
