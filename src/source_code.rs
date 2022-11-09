@@ -1,12 +1,10 @@
 use ethers::types::H160;
 
 // inspired from https://github.com/Ethnical/SmartConStream/blob/main/src/main.rs#L165
-#[allow(unused_variables)]
-#[allow(dead_code)]
-fn get_source_code(address: &H160) -> Vec<(String, Vec<String>)> {
+pub async fn get_source_code(address: &H160) -> Vec<(String, Vec<String>)> {
     let mut result: Vec<(String, Vec<String>)> = vec![];
     let link = format!("https://etherscan.io/contractdiffchecker?a1={:?}", address);
-    let response = reqwest::blocking::get(link).unwrap().text().unwrap();
+    let response = reqwest::get(link).await.unwrap().text().await.unwrap();
     let document = scraper::Html::parse_document(&response);
 
     // Initialize the first file selector
@@ -40,10 +38,13 @@ mod test {
     use ethers::types::H160;
     use std::str::FromStr;
 
-    #[test]
-    fn test() {
-        let address = H160::from_str("0xac046563e7104292fe9130b08360049f79a3b5bf").unwrap();
-        let result = super::get_source_code(&address);
+    #[tokio::test]
+    async fn test() {
+        let address = H160::from_str("0xEB88C8D9943790c743B7a0188ED10426F95ee8F8").unwrap();
+        let result = super::get_source_code(&address).await;
+        // for r in result {
+        //     println!("{:?}", r);
+        // }
         assert!(result[0].0 == "OfficalWelcomeBackTrump.sol".to_owned());
     }
 }
