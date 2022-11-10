@@ -2,6 +2,7 @@ mod block_scanner;
 mod contract;
 mod helper;
 mod source_code;
+mod vulnerability_detection;
 
 use ethers::providers::{Middleware, Provider, Ws};
 use std::env;
