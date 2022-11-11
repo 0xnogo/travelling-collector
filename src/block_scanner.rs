@@ -2,11 +2,13 @@ use std::error::Error;
 
 use crate::contract;
 use crate::helper;
+use crate::vulnerability::{Detector, Vulnerability};
 use ethers::{
     providers::{Middleware, Provider, Ws},
     types::{Block, Transaction, TxHash, H256, U64},
 };
 use futures::{future, StreamExt};
+use strum::IntoEnumIterator;
 
 // listening to block creation
 pub async fn monitoring_blocks(ws_provider: &Provider<Ws>, block_number: U64) -> Option<()> {
@@ -56,6 +58,16 @@ pub async fn analyze_block(ws_provider: &Provider<Ws>, block: Block<H256>, lates
         helper::BALANCE_THRESHOLD,
         &contracts
     );
+
+    // checking for vulnerability
+    let mut reports = vec![];
+    contracts.iter().for_each(|contract| {
+        for vul in Vulnerability::iter() {
+            reports.push(vul.detect(contract));
+        }
+    });
+
+    println!("Vulnerability analysis done. Reports: {:?}", &reports);
 }
 
 async fn get_transactions(

@@ -34,6 +34,7 @@ pub async fn get_source_code(address: &H160) -> Vec<(String, Vec<String>)> {
     result
 }
 
+#[cfg(test)]
 mod test {
     use ethers::types::H160;
     use std::str::FromStr;

@@ -1,12 +1,11 @@
 use std::error::Error;
 
+use crate::source_code;
 use ethers::{
     providers::{Middleware, Provider, Ws},
     types::{BlockId, BlockNumber, Transaction, H160, H256, U256, U64},
 };
 use futures::future;
-
-use crate::source_code;
 
 #[derive(Debug)]
 pub struct Contract {
