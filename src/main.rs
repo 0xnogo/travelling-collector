@@ -15,6 +15,7 @@ async fn main() {
         "backwards" => true,
         _ => false,
     }; // true
+    let path_to_file = &args[2].to_owned();
 
     let ws_provider = Provider::<Ws>::connect(env::var("RPC_WS_ENDPOINT").unwrap())
         .await
@@ -23,17 +24,18 @@ async fn main() {
     let latest_block_number = ws_provider.get_block_number().await.unwrap();
 
     if mode {
-        let mut input_block: u64 = args[2].parse().unwrap(); // 15900000
+        let mut input_block: u64 = args[3].parse().unwrap(); // 15900000
         loop {
             let block = ws_provider.get_block(input_block).await.unwrap().unwrap();
             println!("Perform logic on {} block", input_block);
-            block_scanner::analyze_block(&ws_provider, block, latest_block_number).await;
+            block_scanner::analyze_block(&ws_provider, block, latest_block_number, path_to_file)
+                .await;
             if input_block == 0 {
                 break;
             }
             input_block -= 1;
         }
     } else {
-        block_scanner::monitoring_blocks(&ws_provider, latest_block_number).await;
+        block_scanner::monitoring_blocks(&ws_provider, latest_block_number, path_to_file).await;
     }
 }
