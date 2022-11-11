@@ -34,17 +34,15 @@ pub async fn get_source_code(address: &H160) -> Vec<(String, Vec<String>)> {
     result
 }
 
+#[cfg(test)]
 mod test {
     use ethers::types::H160;
     use std::str::FromStr;
 
     #[tokio::test]
     async fn test() {
-        let address = H160::from_str("0xEB88C8D9943790c743B7a0188ED10426F95ee8F8").unwrap();
+        let address = H160::from_str("0xac046563E7104292fe9130b08360049F79A3B5BF").unwrap();
         let result = super::get_source_code(&address).await;
-        // for r in result {
-        //     println!("{:?}", r);
-        // }
         assert!(result[0].0 == "OfficalWelcomeBackTrump.sol".to_owned());
     }
 }

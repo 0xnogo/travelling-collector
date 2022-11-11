@@ -2,25 +2,38 @@ use std::error::Error;
 
 use crate::contract;
 use crate::helper;
+use crate::vulnerability::{Detector, Vulnerability};
 use ethers::{
     providers::{Middleware, Provider, Ws},
     types::{Block, Transaction, TxHash, H256, U64},
 };
 use futures::{future, StreamExt};
+use std::fs::OpenOptions;
+use std::io::Write;
+use strum::IntoEnumIterator;
 
 // listening to block creation
-pub async fn monitoring_blocks(ws_provider: &Provider<Ws>, block_number: U64) -> Option<()> {
+pub async fn monitoring_blocks(
+    ws_provider: &Provider<Ws>,
+    block_number: U64,
+    path_to_report: &String,
+) -> Option<()> {
     let mut block_stream = ws_provider.subscribe_blocks().await.unwrap();
 
     println!("---------- MONITORING NEW BLOCKS ----------");
     while let Some(block) = block_stream.next().await {
-        analyze_block(&ws_provider, block, block_number).await;
+        analyze_block(&ws_provider, block, block_number, &path_to_report).await;
     }
 
     Some(())
 }
 
-pub async fn analyze_block(ws_provider: &Provider<Ws>, block: Block<H256>, latest_block: U64) {
+pub async fn analyze_block(
+    ws_provider: &Provider<Ws>,
+    block: Block<H256>,
+    latest_block: U64,
+    path_to_report: &String,
+) {
     println!("---- Checking block hash: {:?} ----", block.hash.unwrap());
     let transactions_fetched = get_all_tx_from_block(&ws_provider, block.hash.unwrap())
         .await
@@ -39,23 +52,44 @@ pub async fn analyze_block(ws_provider: &Provider<Ws>, block: Block<H256>, lates
     // get the contract address
     let mut contracts = contract::get_contracts(ws_provider, contract_creation_transactions).await;
 
-    println!("Smart contracts: {:?}", &contracts);
+    println!("Smart contracts: {:#?}", &contracts);
     contract::get_balances(&ws_provider, &mut contracts, latest_block).await;
 
-    println!("Balances: {:?}", &contracts);
+    println!("Balances: {:#?}", &contracts);
 
     helper::filter_contracts_on_balance(
         &mut contracts,
         ethers::utils::parse_ether(helper::BALANCE_THRESHOLD).unwrap(),
     );
-    println!("filtered: {:?}", &contracts);
+    println!("filtered: {:#?}", &contracts);
     contract::get_verified_code(&mut contracts).await;
 
     println!(
-        "Balances with balance >= {}eth eth: {:?}",
+        "Balances with balance >= {}eth eth: {:#?}",
         helper::BALANCE_THRESHOLD,
         &contracts
     );
+
+    // checking for vulnerability
+    let mut reports = vec![];
+    contracts.iter().for_each(|contract| {
+        for vul in Vulnerability::iter() {
+            reports.push(vul.detect(contract));
+        }
+    });
+
+    println!("Vulnerability analysis done.");
+    let mut file = OpenOptions::new()
+        .write(true)
+        .append(true)
+        .create(true)
+        .open(path_to_report)
+        .unwrap();
+
+    for r in &reports {
+        println!("{r}");
+        writeln!(file, "{}", r.to_string()).expect("Unable to write file");
+    }
 }
 
 async fn get_transactions(
