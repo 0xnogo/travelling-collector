@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+dotenvy = "0.15.6"
 ethers = { git = "https://github.com/gakonst/ethers-rs", features = ["ws", "rustls", "abigen"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 futures = "0.3"
