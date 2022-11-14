@@ -34,7 +34,7 @@ pub async fn analyze_block(
     latest_block: U64,
     path_to_report: &String,
 ) {
-    println!("---- Checking block hash: {:?} ----", block.hash.unwrap());
+    println!("---- Checking block no {:?} ----", block.number.unwrap());
     let transactions_fetched = get_all_tx_from_block(&ws_provider, block.hash.unwrap())
         .await
         .unwrap();
@@ -44,30 +44,37 @@ pub async fn analyze_block(
     // filter only creation tx (to is null)
     let contract_creation_transactions: Vec<Transaction> = filter_contract_creation(transactions);
 
+    if contract_creation_transactions.is_empty() {
+        println!("No smart contract in this block.");
+        ()
+    }
+
     println!(
-        "Number of smart contract creation {}",
+        "{} smart contract(s) created:",
         contract_creation_transactions.len()
     );
 
     // get the contract address
     let mut contracts = contract::get_contracts(ws_provider, contract_creation_transactions).await;
-
-    println!("Smart contracts: {:#?}", &contracts);
     contract::get_balances(&ws_provider, &mut contracts, latest_block).await;
 
-    println!("Balances: {:#?}", &contracts);
+    println!("{:#?}", &contracts);
 
     helper::filter_contracts_on_balance(
         &mut contracts,
         ethers::utils::parse_ether(helper::BALANCE_THRESHOLD).unwrap(),
     );
-    println!("filtered: {:#?}", &contracts);
     contract::get_verified_code(&mut contracts).await;
 
+    if contracts.is_empty() {
+        println!("No smart contract above the balancethreshold.");
+        ()
+    }
+
     println!(
-        "Balances with balance >= {}eth eth: {:#?}",
+        "{} smart contract(s) with balance >= {}eth",
+        &contracts.len(),
         helper::BALANCE_THRESHOLD,
-        &contracts
     );
 
     // checking for vulnerability
@@ -78,14 +85,13 @@ pub async fn analyze_block(
         }
     });
 
-    println!("Vulnerability analysis done.");
     let mut file = OpenOptions::new()
         .write(true)
         .append(true)
         .create(true)
         .open(path_to_report)
         .unwrap();
-
+    println!("Written into report: ");
     for r in &reports {
         println!("{r}");
         writeln!(file, "{}", r.to_string()).expect("Unable to write file");

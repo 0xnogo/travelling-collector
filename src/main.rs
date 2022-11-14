@@ -27,7 +27,6 @@ async fn main() {
         let mut input_block: u64 = args[3].parse().unwrap(); // 15900000
         loop {
             let block = ws_provider.get_block(input_block).await.unwrap().unwrap();
-            println!("Perform logic on {} block", input_block);
             block_scanner::analyze_block(&ws_provider, block, latest_block_number, path_to_file)
                 .await;
             if input_block == 0 {
