@@ -5,11 +5,13 @@ mod report;
 mod source_code;
 mod vulnerability;
 
+use dotenvy::dotenv;
 use ethers::providers::{Middleware, Provider, Ws};
 use std::env;
 
 #[tokio::main]
 async fn main() {
+    dotenv().ok();
     let args: Vec<String> = env::args().collect();
     let mode: bool = match &args[1][..] {
         "backwards" => true,
